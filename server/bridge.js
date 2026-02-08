@@ -945,8 +945,11 @@ wss.on('connection', (ws) => {
         // Mock Cloud Drive for Render/Linux
         const isCloudEnv = process.env.RENDER || process.platform === 'linux';
 
+        console.log(`📂 listDir requested. Path: "${msg.path}". CloudEnv: ${isCloudEnv} (Render: ${process.env.RENDER}, Platform: ${process.platform})`);
+
         // If requesting root or C: in cloud mode
-        if (isCloudEnv && (!msg.path || msg.path === 'C:\\' || msg.path === '/')) {
+        if (isCloudEnv && (!msg.path || msg.path === 'C:\\' || msg.path === '/' || msg.path === '.')) {
+          console.log("☁️ Returning Mock Cloud Drive");
           ws.send(JSON.stringify({
             type: 'dirList',
             data: {
