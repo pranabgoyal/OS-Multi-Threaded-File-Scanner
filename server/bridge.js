@@ -943,13 +943,14 @@ wss.on('connection', (ws) => {
         const targetPath = msg.path;
 
         // Mock Cloud Drive for Render/Linux
+        // AGGRESSIVE OVERRIDE: If we are on Render, we MUST show the demo drive.
         const isCloudEnv = process.env.RENDER || process.platform === 'linux';
 
-        console.log(`📂 listDir requested. Path: "${msg.path}". CloudEnv: ${isCloudEnv} (Render: ${process.env.RENDER}, Platform: ${process.platform})`);
+        console.log(`📂 listDir requested. Path: "${msg.path}". CloudEnv: ${isCloudEnv}`);
 
-        // If requesting root or C: in cloud mode
-        if (isCloudEnv && (!msg.path || msg.path === 'C:\\' || msg.path === '/' || msg.path === '.')) {
-          console.log("☁️ Returning Mock Cloud Drive");
+        // If requesting root, C:, or if path is empty/undefined/dot
+        if (isCloudEnv && (!msg.path || msg.path === '.' || msg.path === 'C:' || msg.path === 'C:\\' || msg.path === '/' || msg.path === '\\')) {
+          console.log("☁️ CLOUD DEMO: Intercepting directory list to show Mock Drive");
           ws.send(JSON.stringify({
             type: 'dirList',
             data: {
@@ -960,7 +961,8 @@ wss.on('connection', (ws) => {
                 { name: "Program Files", isDirectory: true },
                 { name: "Program Files (x86)", isDirectory: true },
                 { name: "Cloud_Demo_Mode.txt", isDirectory: false },
-                { name: "Render_Server_Info.log", isDirectory: false }
+                { name: "Render_Server_Info.log", isDirectory: false },
+                { name: "Click_Scan_To_Test.txt", isDirectory: false }
               ]
             }
           }));
