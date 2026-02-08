@@ -7,7 +7,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const https = require('https');
 
-const PORT = 8081;
+const PORT = process.env.PORT || 8081;
 const wss = new WebSocket.Server({ port: PORT });
 const settingsFile = path.resolve(__dirname, '../../settings.json');
 const autoScan = false; // Disable auto-scan by default
