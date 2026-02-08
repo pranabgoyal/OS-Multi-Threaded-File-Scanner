@@ -256,8 +256,16 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       ws.onerror = (error) => {
         // Suppress empty error events common during cleanup/react strict mode
         if (event && (event as any).type === 'error' && (event as any).message === undefined) return;
-        console.error('WebSocket error:', error)
+        console.error('WebSocket Error:', error)
         setConnectionStatus('error')
+
+        // DEBUG: Tell user what URL failed
+        if (reconnectAttemptsRef.current === 0) {
+          toast.error("Connection Failed", {
+            description: `Tried connecting to: ${WEBSOCKET_URL}. Check Env Vars!`,
+            duration: 10000
+          });
+        }
       }
 
     } catch (error) {
