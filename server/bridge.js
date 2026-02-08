@@ -101,7 +101,6 @@ function startScan(scanPath, cpuLimit = 100) {
 
   console.log(`🔎 Starting scan for: ${scanPath} (CPU Limit: ${cpuLimit}%) - Detect Only Mode`);
 
-  // Validate Path
   // CLOUD DEMO MODE: If on Render/Linux and scanning "root" paths, START SIMULATION
   const isCloudEnv = process.env.RENDER || process.platform === 'linux';
 
