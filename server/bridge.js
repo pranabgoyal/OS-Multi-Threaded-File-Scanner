@@ -949,7 +949,7 @@ wss.on('connection', (ws) => {
         console.log(`📂 listDir requested. Path: "${msg.path}". CloudEnv: ${isCloudEnv}`);
 
         // If requesting root, C:, or if path is empty/undefined/dot
-        if (isCloudEnv && (!msg.path || msg.path === '.' || msg.path === 'C:' || msg.path === 'C:\\' || msg.path === '/' || msg.path === '\\')) {
+        if (isCloudEnv && (!msg.path || msg.path === '' || msg.path === '.' || msg.path === 'C:' || msg.path === 'C:\\' || msg.path === '/' || msg.path === '\\')) {
           console.log("☁️ CLOUD DEMO: Intercepting directory list to show Mock Drive");
           ws.send(JSON.stringify({
             type: 'dirList',
