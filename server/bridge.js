@@ -111,6 +111,7 @@ function startScan(scanPath, cpuLimit = 100) {
     return;
   }
 
+  // Validate Path
   if (!fs.existsSync(scanPath)) {
     console.error(`❌ Scan Path does not exist: "${scanPath}"`);
     broadcast({
@@ -275,6 +276,120 @@ function startScan(scanPath, cpuLimit = 100) {
 
     scannerProcess = null;
   });
+}
+
+/* ---------- CLOUD SIMULATION ENGINE ---------- */
+function simulateScan(scanId, cpuLimit) {
+  let filesScanned = 0;
+  let threatsFound = 0;
+  let activeThreads = Math.min(8, Math.ceil((cpuLimit / 100) * 8));
+  let simSpeed = 50; // Initial speed
+
+  console.log('🎭 Simulation Engine Started');
+
+  // Broadcast "Starting" state
+  broadcast({
+    type: 'metrics',
+    data: {
+      status: 'SCANNING',
+      filesScanned: 0,
+      threatsDetected: 0,
+      activeThreads: activeThreads,
+      totalThreads: 8,
+      scanSpeed: 0,
+      cpuLoad: Math.floor(cpuLimit * 0.8),
+      memoryUsage: 45,
+      diskIO: 120
+    }
+  });
+
+  // Mock File List for Visuals
+  const mockFiles = [
+    "kernel32.dll", "user32.dll", "ntdll.dll", "explorer.exe", "svchost.exe",
+    "chrome.exe", "firefox.exe", "system.ini", "pagefile.sys", "registry.dat",
+    "notes.txt", "image.png", "backup.zip", "setup.msi", "app.js"
+  ];
+
+  const simInterval = setInterval(() => {
+    // Check if stopped
+    if (scanId !== currentScanId) {
+      clearInterval(simInterval);
+      return;
+    }
+
+    // Dynamic Speed Curve (accelerate then stabilize)
+    if (simSpeed < 800) simSpeed += Math.random() * 50;
+
+    // Increment Stats
+    let batch = Math.floor(simSpeed / 10); // Files per 100ms
+    filesScanned += batch;
+
+    // Random Threat Generation (rare)
+    if (Math.random() > 0.98) {
+      threatsFound++;
+      const threatFile = `simulated_threat_${Math.floor(Math.random() * 1000)}.exe`;
+      broadcast({
+        type: 'alert',
+        data: {
+          id: `SIM-${Date.now()}`,
+          file: `C:\\Windows\\Temp\\${threatFile}`,
+          threat: "Simulated_Trojan.Win32",
+          status: 'warning',
+          time: new Date().toLocaleTimeString(),
+          type: 'malware'
+        }
+      });
+    }
+
+    // Broadcast Metrics
+    const metrics = {
+      status: 'SCANNING',
+      filesScanned: filesScanned,
+      threatsDetected: threatsFound,
+      activeThreads: Math.floor(activeThreads * (0.8 + Math.random() * 0.4)), // Fluctuate
+      totalThreads: 8,
+      scanSpeed: Math.floor(simSpeed),
+      cpuLoad: Math.floor(cpuLimit * (0.9 + Math.random() * 0.1)),
+      memoryUsage: 45 + Math.floor(filesScanned / 1000),
+      diskIO: Math.floor(simSpeed * 0.5)
+    };
+
+    // Update global state
+    currentMetrics = metrics;
+    lastMetrics = { filesScanned, threatsDetected }; // Update lastMetrics for finish handler logic
+
+    broadcast({ type: 'metrics', data: metrics });
+
+    // Fake File Events (Waterfall)
+    if (Math.random() > 0.5) {
+      const file = mockFiles[Math.floor(Math.random() * mockFiles.length)];
+      // We rely on the frontend to generate the blocks based on metrics delta, 
+      // but we can also emit fileScanned if needed. 
+      // Our existing logic uses metrics delta, so this is fine.
+    }
+
+    // Auto-finish after ~30 seconds or 10,000 files for demo
+    if (filesScanned > 10000) {
+      clearInterval(simInterval);
+      // Finish
+      broadcast({ type: 'metrics', data: { ...metrics, status: 'completed', activeThreads: 0 } });
+      broadcast({ type: 'status', data: { scanning: false, code: 0 } });
+
+      // Save Mock History
+      saveHistoryEntry({
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        path: "C:\\ (Cloud Demo)",
+        filesScanned: filesScanned,
+        threatsDetected: threatsFound,
+        durationMs: 30000,
+        status: 'completed'
+      });
+      broadcast({ type: 'history', data: loadHistory() });
+      console.log('✅ Simulation Completed');
+    }
+
+  }, 100);
 }
 
 /* ---------- TERMINAL INPUT ---------- */
