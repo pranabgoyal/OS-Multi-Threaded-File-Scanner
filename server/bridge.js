@@ -102,6 +102,15 @@ function startScan(scanPath, cpuLimit = 100) {
   console.log(`🔎 Starting scan for: ${scanPath} (CPU Limit: ${cpuLimit}%) - Detect Only Mode`);
 
   // Validate Path
+  // CLOUD DEMO MODE: If on Render/Linux and scanning "root" paths, START SIMULATION
+  const isCloudEnv = process.env.RENDER || process.platform === 'linux';
+
+  if (isCloudEnv && (scanPath === '.' || scanPath === 'C:' || scanPath === 'C:\\' || scanPath === '/')) {
+    console.log(`☁️ CLOUD MODE: Starting SIMULATED scan for: ${scanPath}`);
+    simulateScan(thisScanId, cpuLimit);
+    return;
+  }
+
   if (!fs.existsSync(scanPath)) {
     console.error(`❌ Scan Path does not exist: "${scanPath}"`);
     broadcast({
@@ -818,6 +827,28 @@ wss.on('connection', (ws) => {
         }
       } else if (msg.type === 'listDir') {
         const targetPath = msg.path;
+
+        // Mock Cloud Drive for Render/Linux
+        const isCloudEnv = process.env.RENDER || process.platform === 'linux';
+
+        // If requesting root or C: in cloud mode
+        if (isCloudEnv && (!msg.path || msg.path === 'C:\\' || msg.path === '/')) {
+          ws.send(JSON.stringify({
+            type: 'dirList',
+            data: {
+              path: "C:\\",
+              items: [
+                { name: "Windows", isDirectory: true },
+                { name: "Users", isDirectory: true },
+                { name: "Program Files", isDirectory: true },
+                { name: "Program Files (x86)", isDirectory: true },
+                { name: "Cloud_Demo_Mode.txt", isDirectory: false },
+                { name: "Render_Server_Info.log", isDirectory: false }
+              ]
+            }
+          }));
+          return;
+        }
 
         if (!targetPath) {
           // List Drives (Windows) or Root (Unix)
