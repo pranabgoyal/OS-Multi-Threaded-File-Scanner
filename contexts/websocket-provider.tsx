@@ -12,7 +12,7 @@ import type {
   ThroughputDataPoint
 } from '@/types/scanner'
 
-const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8081'
+const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:9090'
 
 interface WebSocketContextValue {
   connectionStatus: ConnectionStatus;
@@ -122,6 +122,27 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
                 // Keep last 60 points (60 seconds)
                 return newData.slice(-60)
               })
+
+              // STATUS CHANGE NOTIFICATIONS
+              if (message.data.status) {
+                const newStatus = message.data.status;
+                const prevStatus = document.body.getAttribute('data-scan-status'); // Hacky but effective state tracking without ref
+
+                if (newStatus !== prevStatus) {
+                  document.body.setAttribute('data-scan-status', newStatus);
+
+                  if (newStatus === 'SCANNING' && prevStatus !== 'PAUSED') {
+                    toast.info("Scan Started", { description: "Scanning file system...", duration: 2000 });
+                  } else if (newStatus === 'IDLE' && prevStatus === 'SCANNING') {
+                    toast.info("Scan Stopped", { description: "Scan was stopped manually.", duration: 2000 });
+                  } else if (newStatus === 'completed') {
+                    toast.success("Scan Completed", {
+                      description: `Scanned ${message.data.filesScanned} files. Found ${message.data.threatsDetected} threats.`,
+                      duration: 5000
+                    });
+                  }
+                }
+              }
               break
             case 'quarantineList':
               if (Array.isArray(message.data)) {
@@ -139,11 +160,12 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
             case 'alert':
               // Differentiate between INFO (progress) and THREATS
               if (message.data.type === 'info') {
-                toast.info(message.data.threat, {
-                  description: `${message.data.file}`,
-                  duration: 2000, // Short duration for progress updates
-                });
-                // Do NOT add to alerts list
+                // SPAM PREVENTION: User found these annoying.
+                // toast.info(message.data.threat, {
+                //   description: `${message.data.file}`,
+                //   duration: 2000,
+                // });
+                // We just ignore visual toasts for info, but could log if needed.
               } else {
                 // Real Threat or System Error
                 const newAlert = {
@@ -157,13 +179,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
                 setAlerts(prev => [newAlert, ...prev])
 
-                toast("Threat Detected!", {
-                  description: `${message.data.threat} found in ${message.data.file}`,
-                  action: {
-                    label: "Details",
-                    onClick: () => console.log("Show details"),
-                  },
-                })
+                // SILENCED PER USER REQUEST:
+                // Only showing Summary at the end.
+                // toast("Threat Detected!", {
+                //   description: `${message.data.threat} found in ${message.data.file}`,
+                //   action: {
+                //     label: "Details",
+                //     onClick: () => console.log("Show details"),
+                //   },
+                // })
               }
               break
 

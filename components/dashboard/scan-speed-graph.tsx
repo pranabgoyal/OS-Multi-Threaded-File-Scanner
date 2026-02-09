@@ -14,34 +14,49 @@ export function ScanSpeedGraph() {
     const [dataPoints, setDataPoints] = useState<DataPoint[]>([])
 
     useEffect(() => {
-        const now = new Date()
-        const timeStr = now.toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        })
+        // SIMPLIFIED LOGIC: Always record if not IDLE.
+        // This ensures usually we see SOMETHING.
+        if (metrics.status !== 'IDLE') {
+            const now = new Date()
+            const timeStr = now.toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            })
 
-        setDataPoints(prev => {
-            const newPoint = {
-                time: timeStr,
-                speed: metrics.scanSpeed
-            }
+            setDataPoints(prev => {
+                const newPoint = {
+                    time: timeStr,
+                    speed: metrics.scanSpeed || 0
+                }
+                return [...prev, newPoint].slice(-300)
+            })
+        }
+    }, [metrics.filesScanned, metrics.scanSpeed, metrics.status]) // Explicit primitives to avoid React Hook errors
 
-            // Keep last 30 data points for a smooth window
-            const updated = [...prev, newPoint].slice(-30)
-            return updated
-        })
-    }, [metrics.scanSpeed])
-
-    // Clear data ONLY when a NEW scan starts
+    // Clear data when a NEW scan starts OR when RESET happens
     useEffect(() => {
         if (metrics.status === 'WARMUP') {
             setDataPoints([])
         }
-    }, [metrics.status])
+        // If status is IDLE and filesScanned is 0, it means we Reset.
+        if (metrics.status === 'IDLE' && metrics.filesScanned === 0) {
+            setDataPoints([])
+        }
+    }, [metrics.status, metrics.filesScanned])
 
-    const maxSpeed = Math.max(...dataPoints.map(d => d.speed), 10)
+    // OPTIMIZATION: Smooth the data for better visuals
+    // A raw throughput graph is very spiky. We apply a simple moving average.
+    const smoothedData = dataPoints.map((point, i, arr) => {
+        if (i < 2) return point;
+        const prev = arr[i - 1];
+        const prev2 = arr[i - 2];
+        const avgSpeed = (point.speed + prev.speed + prev2.speed) / 3;
+        return { ...point, speed: Math.round(avgSpeed) };
+    });
+
+    const maxSpeed = Math.max(...smoothedData.map(d => d.speed), 10)
 
     return (
         <Card>
@@ -55,13 +70,13 @@ export function ScanSpeedGraph() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {dataPoints.length === 0 ? (
+                {smoothedData.length === 0 ? (
                     <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
                         Start a scan to see real-time speed metrics
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={200}>
-                        <AreaChart data={dataPoints}>
+                        <AreaChart data={smoothedData}>
                             <defs>
                                 <linearGradient id="colorSpeed" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -73,12 +88,13 @@ export function ScanSpeedGraph() {
                                 dataKey="time"
                                 tick={{ fontSize: 10 }}
                                 className="text-muted-foreground"
-                                minTickGap={30}
+                                minTickGap={5} // Show ticks even for short durations
+                                interval="preserveStartEnd"
                             />
                             <YAxis
                                 tick={{ fontSize: 10 }}
                                 className="text-muted-foreground"
-                                domain={[0, maxSpeed + 5]}
+                                domain={[0, maxSpeed > 10 ? 'auto' : 10]} // Ensure scale doesn't look flat for low speeds
                                 width={30}
                             />
                             <Tooltip
@@ -97,12 +113,13 @@ export function ScanSpeedGraph() {
                                 dataKey="speed"
                                 stroke="hsl(var(--primary))"
                                 strokeWidth={2}
-                                fillOpacity={1}
+                                fillOpacity={0.2}
                                 fill="url(#colorSpeed)"
-                                dot={{ fill: 'hsl(var(--primary))', r: 3, strokeWidth: 0 }}
-                                activeDot={{ r: 5, strokeWidth: 0 }}
+                                dot={false} // Clean look
+                                activeDot={{ r: 6, strokeWidth: 0 }}
                                 animationDuration={300}
                                 isAnimationActive={true}
+                                connectNulls={true}
                             />
                         </AreaChart>
                     </ResponsiveContainer>

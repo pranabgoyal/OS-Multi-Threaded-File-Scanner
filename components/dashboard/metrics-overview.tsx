@@ -30,7 +30,7 @@ export function MetricsOverview() {
         {
             label: 'Scan Speed',
             value: `${metrics.scanSpeed} /s`,
-            subValue: `${metrics.filesScanned.toLocaleString()} total`,
+            subValue: `${(metrics.filesScanned + metrics.threatsDetected).toLocaleString()} processed`,
             icon: Zap,
             color: 'text-warning',
             bgColor: 'bg-warning/10'

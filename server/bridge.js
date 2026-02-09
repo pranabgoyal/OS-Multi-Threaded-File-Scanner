@@ -875,20 +875,51 @@ wss.on('connection', (ws) => {
           scannerProcess.stdin.write('r\n');
         }
       } else if (msg.type === 'reset') {
-        console.log('📨 Received web command: RESET');
-        // Reset server-side metrics
-        currentMetrics = {
-          status: 'idle',
+        console.log("🔄 Reset Command Received: Stopping scan and clearing data.");
+
+        // 1. Force Stop Scan
+        if (scannerProcess) {
+          try {
+            if (process.platform === 'win32') {
+              // Windows: Force kill tree to catch any shells/children
+              require('child_process').exec(`taskkill /pid ${scannerProcess.pid} /T /F`);
+            } else {
+              scannerProcess.kill();
+            }
+            console.log('🛑 Scanner process killed via Reset (Force/Tree)');
+          } catch (e) {
+            console.error('Error killing process on reset:', e);
+          }
+          scannerProcess = null;
+        }
+
+        // 2. Kill Simulation
+        if (simulationInterval) {
+          clearInterval(simulationInterval);
+          simulationInterval = null;
+        }
+
+        // 3. Clear Backend State
+        currentScanId = null;
+        scanHistory = [];
+        uniqueThreats.clear();
+        metrics = {
           filesScanned: 0,
           threatsDetected: 0,
           activeThreads: 0,
-          totalThreads: 0,
+          totalThreads: 8,
           scanSpeed: 0,
           cpuLoad: 0,
           memoryUsage: 0,
-          diskIO: 0
+          diskIO: 0,
+          status: 'IDLE',
+          startTime: null
         };
-        lastMetrics = { filesScanned: 0, threatsDetected: 0 };
+
+        // 4. Update Client
+        broadcast({ type: 'metrics', data: metrics });
+        broadcast({ type: 'history', data: [] });
+        broadcast({ type: 'status', data: { scanning: false } });
         filesScanned = 0;
         threatsFound = 0;
         scanStartTime = 0;

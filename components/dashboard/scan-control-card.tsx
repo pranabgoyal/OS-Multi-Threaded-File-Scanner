@@ -23,7 +23,12 @@ export function ScanControlCard() {
         }
     }, [lastUploadedFile])
 
-    const isScanning = status === 'SCANNING' || status === 'WARMUP'
+    // Fail-safe: If threads are active, allow stopping even if status is weird
+    const { threads } = useScanEngine()
+    const hasActiveThreads = Array.from(threads.values()).some(t => t.status === 'busy')
+
+    // logic: Scanning OR Paused OR (Idle but Threads are busy -> Bug state, show Stop)
+    const isScanning = status === 'SCANNING' || status === 'WARMUP' || hasActiveThreads
     const isPaused = status === 'PAUSED'
 
     const handleStart = (path?: string) => {

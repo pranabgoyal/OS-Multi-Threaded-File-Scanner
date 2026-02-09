@@ -1,9 +1,10 @@
 "use client"
 
 import React from 'react'
-import { Shield, Wifi, WifiOff, Square, RotateCcw, Zap } from 'lucide-react'
+import { Shield, Wifi, WifiOff, Square, RotateCcw, Zap, Volume2, VolumeX } from 'lucide-react'
 import { useScanner } from '@/contexts/websocket-provider'
 import { useScanEngine } from '@/contexts/scan-engine-provider'
+import { useSoundSettings } from '@/contexts/sound-provider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,9 @@ export function StatusHeader() {
     const currentStatus = statusConfig[status as string] || statusConfig['IDLE']
     const isConnected = connectionStatus === 'connected'
 
+    // SOUND CONTROLS
+    const { isMuted, toggleMute } = useSoundSettings()
+
     return (
         <div className="bg-card border-b">
             <div className="container mx-auto px-6 py-4">
@@ -43,6 +47,15 @@ export function StatusHeader() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleMute}
+                            title={isMuted ? "Unmute" : "Mute"}
+                        >
+                            {isMuted ? <VolumeX className="h-5 w-5 text-muted-foreground" /> : <Volume2 className="h-5 w-5 text-foreground" />}
+                        </Button>
+
                         <div className="mr-2">
                             <SettingsModal />
                         </div>

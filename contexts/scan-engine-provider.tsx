@@ -128,7 +128,8 @@ export function ScanEngineProvider({ children }: { children: React.ReactNode }) 
             const lastAlert = alerts[0];
 
             // Play Alert Sound
-            playSound('alert')
+            // SILENCED PER USER REQUEST
+            // playSound('alert')
 
             // Inject a threat block immediately
             const threatBlock: ScanBlock = {
@@ -145,16 +146,17 @@ export function ScanEngineProvider({ children }: { children: React.ReactNode }) 
             setSelectedBlock(threatBlock);
 
             // Trigger Custom Toast
-            import('@/components/dashboard/threat-toast').then(({ ThreatToast }) => {
-                toast.custom((t) => (
-                    <ThreatToast
-                        file={lastAlert.file.split(/[\\/]/).pop() || "Unknown File"}
-                        path={lastAlert.file}
-                        threat={lastAlert.threat || "Unknown Threat"}
-                        onDismiss={() => toast.dismiss(t)}
-                    />
-                ), { duration: 10000 }); // Longer duration for threats
-            });
+            // SILENCED PER USER REQUEST
+            // import('@/components/dashboard/threat-toast').then(({ ThreatToast }) => {
+            //     toast.custom((t) => (
+            //         <ThreatToast
+            //             file={lastAlert.file.split(/[\\/]/).pop() || "Unknown File"}
+            //             path={lastAlert.file}
+            //             threat={lastAlert.threat || "Unknown Threat"}
+            //             onDismiss={() => toast.dismiss(t)}
+            //         />
+            //     ), { duration: 10000 }); // Longer duration for threats
+            // });
         }
     }, [alerts, playSound]);
 
